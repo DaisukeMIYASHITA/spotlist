@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spotlist - Generate playlists from live events</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: #000000;
+    --bg-elevated: #121212;
+    --bg-card: #181818;
+    --bg-highlight: #282828;
+    --bg-hover: #2a2a2a;
+    --accent: #1DB954;
+    --accent-hover: #1ed760;
+    --accent-press: #169c46;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --text-muted: #727272;
+    --border: #333333;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --error: #f15e6c;
+    --warning: #ffa42b;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== Header / Navbar ===== */
+  .header {
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-elevated);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #000;
+    font-weight: 800;
+  }
+
+  .logo-text {
+    font-size: 20px; font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .lang-toggle {
+    padding: 6px 12px;
+    border-radius: 100px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .lang-toggle:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+  }
+
+  .spotify-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 20px;
+    border-radius: 100px;
+    font-size: 13px; font-weight: 600;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .spotify-btn:hover { background: var(--accent-hover); transform: scale(1.02); }
+  .spotify-btn:active { background: var(--accent-press); transform: scale(0.98); }
+
+  .spotify-btn.connected {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  .spotify-btn .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ===== Main ===== */
+  .main { max-width: 800px; margin: 0 auto; padding: 48px 24px 140px; }
+
+  /* ===== Hero ===== */
+  .hero { text-align: center; margin-bottom: 48px; }
+
+  .hero h1 {
+    font-size: 42px; font-weight: 800;
+    line-height: 1.2; margin-bottom: 12px;
+    letter-spacing: -1.5px;
+    color: var(--text-primary);
+  }
+
+  .hero h1 .accent { color: var(--accent); }
+
+  .hero p {
+    font-size: 15px; color: var(--text-secondary);
+    max-width: 500px; margin: 0 auto; line-height: 1.6;
+  }
+
+  /* ===== Step Cards ===== */
+  .step-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: opacity 0.3s;
+  }
+
+  .step-card.disabled { opacity: 0.4; pointer-events: none; }
+
+  .step-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .step-number {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--bg-highlight);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .step-card.active .step-number {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .step-number.done {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .step-title { font-size: 16px; font-weight: 700; }
+
+  /* ===== Textarea ===== */
+  textarea {
+    width: 100%;
+    min-height: 140px;
+    background: var(--bg-highlight);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    padding: 16px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.7;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  textarea::placeholder { color: var(--text-muted); }
+
+  /* ===== Example chips ===== */
+  .examples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  .example-chip {
+    padding: 6px 14px;
+    border-radius: 100px;
+    background: var(--bg-highlight);
+    border: none;
+    font-size: 12px; font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .example-chip:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* ===== Buttons ===== */
+  .btn {
+    padding: 12px 32px;
+    border-radius: 100px;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .btn-primary:hover { background: var(--accent-hover); transform: scale(1.02); }
+  .btn-primary:active { background: var(--accent-press); transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+
+  .btn .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  .btn.loading .spinner { display: block; }
+  .btn.loading .btn-label { display: none; }
+  .btn.loading .btn-loading-text { display: inline !important; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .step-actions {
+    display: flex; gap: 10px; margin-top: 20px;
+    align-items: center; justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  /* ===== Artist Tags ===== */
+  .artist-list {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    min-height: 40px;
+  }
+
+  .artist-tag {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 12px;
+    border-radius: 100px;
+    background: var(--bg-highlight);
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary);
+    animation: fadeIn 0.25s ease;
+  }
+
+  .artist-tag.matched {
+    background: rgba(29,185,84,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(29,185,84,0.3);
+  }
+
+  .artist-tag .verified-icon {
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  .artist-tag .remove-btn {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: currentColor;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+    margin-left: 2px;
+  }
+
+  .artist-tag .remove-btn:hover { background: rgba(255,255,255,0.2); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+
+  .add-artist-row {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+
+  .add-artist-row input {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--bg-highlight);
+    border: 1px solid transparent;
+    border-radius: 100px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 0.2s;
+  }
+
+  .add-artist-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .add-artist-row input::placeholder { color: var(--text-muted); }
+
+  .analysis-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+
+  /* ===== Track List ===== */
+  .track-list { display: flex; flex-direction: column; }
+
+  .track-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .track-item:hover { background: var(--bg-hover); }
+  .track-item:hover .track-play { opacity: 1; }
+  .track-item:hover .track-num { color: transparent; }
+
+  .track-num {
+    width: 20px; text-align: center;
+    font-size: 13px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    position: relative;
+  }
+
+  .track-play {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0; color: var(--text-primary);
+    font-size: 12px; transition: opacity 0.15s;
+  }
+
+  .track-art {
+    width: 40px; height: 40px;
+    border-radius: 4px;
+    background: var(--bg-highlight);
+    overflow: hidden; flex-shrink: 0;
+  }
+
+  .track-art img { width: 100%; height: 100%; object-fit: cover; }
+
+  .track-info { flex: 1; min-width: 0; }
+
+  .track-name {
+    font-size: 14px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--text-primary);
+  }
+
+  .track-artist {
+    font-size: 12px; color: var(--text-secondary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .track-duration {
+    font-size: 12px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .track-link {
+    color: var(--text-muted); text-decoration: none;
+    padding: 4px; border-radius: 50%;
+    transition: color 0.2s; flex-shrink: 0;
+    display: flex; align-items: center;
+  }
+
+  .track-link:hover { color: var(--accent); }
+
+  .playlist-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+  }
+
+  .playlist-meta { font-size: 13px; color: var(--text-secondary); }
+
+  .playlist-actions { display: flex; gap: 8px; }
+
+  /* ===== Preview Player ===== */
+  .preview-player {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding: 8px 24px;
+    display: none; align-items: center; gap: 14px;
+    z-index: 200;
+  }
+
+  .preview-player.active { display: flex; }
+
+  .preview-player .track-art { width: 40px; height: 40px; }
+
+  .preview-player .track-info { flex: 1; min-width: 0; }
+
+  .preview-controls { display: flex; align-items: center; gap: 10px; }
+
+  .preview-controls button {
+    width: 32px; height: 32px;
+    border-radius: 50%; border: none;
+    background: var(--text-primary); color: #000;
+    font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s;
+  }
+
+  .preview-controls button:hover { transform: scale(1.06); }
+
+  .progress-bar {
+    flex: 1; max-width: 300px; height: 4px;
+    background: var(--bg-highlight); border-radius: 2px;
+    overflow: hidden; cursor: pointer;
+  }
+
+  .progress-fill {
+    height: 100%; background: var(--accent);
+    border-radius: 2px; width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  /* ===== Modal ===== */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 500;
+    align-items: center; justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    max-width: 480px; width: 90%;
+  }
+
+  .modal h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
+
+  .modal-input {
+    width: 100%; padding: 12px 16px;
+    background: var(--bg-highlight);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+
+  .modal-input:focus { outline: none; border-color: var(--accent); }
+
+  .modal-hint {
+    font-size: 12px; color: var(--text-muted);
+    margin-bottom: 20px; line-height: 1.7;
+  }
+
+  .modal-hint a { color: var(--accent); text-decoration: none; }
+  .modal-hint a:hover { text-decoration: underline; }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  .modal-actions button {
+    padding: 10px 24px; border-radius: 100px; border: none;
+    font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .modal-cancel { background: transparent; color: var(--text-secondary); border: 1px solid var(--border) !important; }
+  .modal-cancel:hover { border-color: var(--text-secondary) !important; color: var(--text-primary); }
+  .modal-confirm { background: var(--accent); color: #000; }
+  .modal-confirm:hover { background: var(--accent-hover); }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    padding: 12px 24px;
+    background: var(--bg-highlight);
+    border-radius: var(--radius);
+    font-size: 13px; color: var(--text-primary);
+    z-index: 300;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ===== Skeleton ===== */
+  .skeleton-list { display: none; flex-direction: column; gap: 2px; }
+  .skeleton-list.visible { display: flex; }
+
+  .skeleton-item { display: flex; align-items: center; gap: 14px; padding: 8px 12px; }
+
+  .skeleton-box {
+    background: linear-gradient(90deg, var(--bg-highlight) 25%, var(--bg-hover) 50%, var(--bg-highlight) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite; border-radius: 4px;
+  }
+
+  .skel-num { width: 20px; height: 13px; }
+  .skel-art { width: 40px; height: 40px; flex-shrink: 0; border-radius: 4px; }
+  .skel-lg { width: 180px; height: 14px; margin-bottom: 5px; }
+  .skel-sm { width: 120px; height: 12px; }
+  .skel-dur { width: 36px; height: 12px; margin-left: auto; }
+
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 600px) {
+    .header { padding: 12px 16px; }
+    .main { padding: 28px 16px 140px; }
+    .hero h1 { font-size: 28px; }
+    .hero p { font-size: 13px; }
+    .step-card { padding: 18px; }
+    .step-actions { justify-content: stretch; }
+    .step-actions .btn { flex: 1; justify-content: center; }
+    .progress-bar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo-icon">S</div>
+    <span class="logo-text">Spotlist</span>
+  </div>
+  <div class="header-right">
+    <button class="lang-toggle" id="langBtn" onclick="toggleLang()">JA</button>
+    <button class="spotify-btn" id="spotifyBtn" onclick="handleSpotifyAuth()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      <span id="spotifyBtnText" data-i18n="connect_spotify">Connect to Spotify</span>
+    </button>
+  </div>
+</header>
+
+<main class="main">
+
+  <div class="hero">
+    <h1 data-i18n="hero_title">Turn live events into<br><span class="accent">playlists</span></h1>
+    <p data-i18n="hero_desc">Paste a music event description, and we'll extract the artists and build a Spotify playlist automatically.</p>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step-card active" id="step1">
+    <div class="step-header">
+      <div class="step-number" id="badge1">1</div>
+      <div class="step-title" data-i18n="step1_title">Paste event description</div>
+    </div>
+    <textarea id="liveDescription" data-i18n-placeholder="step1_placeholder" placeholder="e.g. FUJI ROCK FESTIVAL 2025&#10;&#10;GREEN STAGE: Radiohead / Kendrick Lamar / King Gnu&#10;WHITE STAGE: Aphex Twin / Cornelius / HYUKOH&#10;RED MARQUEE: Floating Points / cero / GEZAN"></textarea>
+    <div class="examples">
+      <button class="example-chip" onclick="fillExample(0)" data-i18n="ex_rock">Rock Festival</button>
+      <button class="example-chip" onclick="fillExample(1)" data-i18n="ex_club">Club Event</button>
+      <button class="example-chip" onclick="fillExample(2)" data-i18n="ex_jazz">Jazz Live</button>
+      <button class="example-chip" onclick="fillExample(3)" data-i18n="ex_idol">Idol Live</button>
+    </div>
+    <div class="step-actions">
+      <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeDescription()">
+        <span class="spinner"></span>
+        <span class="btn-label" data-i18n="btn_analyze">Find Artists</span>
+        <span class="btn-loading-text" style="display:none;" data-i18n="btn_analyzing">Searching...</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step-card disabled" id="step2">
+    <div class="step-header">
+      <div class="step-number" id="badge2">2</div>
+      <div class="step-title" data-i18n="step2_title">Review & edit artists</div>
+    </div>
+    <div class="artist-list" id="artistList"></div>
+    <div class="add-artist-row">
+      <input type="text" id="addArtistInput" data-i18n-placeholder="add_artist_placeholder" placeholder="Add artist name..." onkeydown="if(event.key==='Enter')addArtistManual()">
+      <button class="btn btn-ghost" onclick="addArtistManual()" style="white-space:nowrap;padding:10px 20px;">
+        <span data-i18n="btn_add">+ Add</span>
+      </button>
+    </div>
+    <p class="analysis-note" id="analysisNote"></p>
+    <div class="step-actions">
+      <button class="btn btn-ghost" onclick="backToStep1()" data-i18n="btn_back">Back</button>
+      <button class="btn btn-primary" id="generateBtn" onclick="generatePlaylist()">
+        <span class="spinner"></span>
+        <span class="btn-label" data-i18n="btn_generate">Generate Playlist</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-card disabled" id="step3">
+    <div class="step-header">
+      <div class="step-number" id="badge3">3</div>
+      <div class="step-title" data-i18n="step3_title">Your Playlist</div>
+    </div>
+    <div class="playlist-header">
+      <div class="playlist-meta" id="playlistMeta"></div>
+      <div class="playlist-actions">
+        <button class="btn btn-ghost" onclick="copyPlaylist()" style="padding:8px 18px;font-size:13px;" data-i18n="btn_copy">Copy</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveToSpotify()" style="padding:8px 18px;font-size:13px;">
+          <span class="spinner"></span>
+          <span class="btn-label" data-i18n="btn_save">Save to Spotify</span>
+        </button>
+      </div>
+    </div>
+    <div class="skeleton-list" id="skeletonList"></div>
+    <div class="track-list" id="trackList"></div>
+  </div>
+
+</main>
+
+<!-- Preview player -->
+<div class="preview-player" id="previewPlayer">
+  <div class="track-art"><img id="previewArt" src="" alt=""></div>
+  <div class="track-info">
+    <div class="track-name" id="previewName">-</div>
+    <div class="track-artist" id="previewArtist">-</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="preview-controls">
+    <button id="previewPlayBtn" onclick="togglePreview()">&#9654;</button>
+  </div>
+</div>
+
+<!-- Setup modal -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal">
+    <h3 data-i18n="modal_title">Spotify API Setup</h3>
+    <p data-i18n="modal_desc">You need a Spotify Developer App Client ID to generate playlists.</p>
+    <input class="modal-input" type="text" id="modalClientId" placeholder="Paste your Client ID...">
+    <div class="modal-hint">
+      1. Go to <a href="https://developer.spotify.com/dashboard" target="_blank">Spotify Developer Dashboard</a><br>
+      2. Create an app<br>
+      3. Add <strong id="currentUrl"></strong> as a Redirect URI<br>
+      4. Check "Web API" in the settings<br>
+      5. Copy the Client ID and paste it here
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeSetupModal()" data-i18n="btn_cancel">Cancel</button>
+      <button class="modal-confirm" onclick="saveClientId()" data-i18n="btn_connect">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== i18n =====
+let currentLang = 'en';
+
+const TRANSLATIONS = {
+  en: {
+    connect_spotify: 'Connect to Spotify',
+    connected: 'Connected',
+    hero_title: 'Turn live events into<br><span class="accent">playlists</span>',
+    hero_desc: 'Paste a music event description, and we\'ll extract the artists and build a Spotify playlist automatically.',
+    step1_title: 'Paste event description',
+    step1_placeholder: 'e.g. FUJI ROCK FESTIVAL 2025\n\nGREEN STAGE: Radiohead / Kendrick Lamar / King Gnu\nWHITE STAGE: Aphex Twin / Cornelius / HYUKOH\nRED MARQUEE: Floating Points / cero / GEZAN',
+    step2_title: 'Review & edit artists',
+    step3_title: 'Your Playlist',
+    ex_rock: 'Rock Festival',
+    ex_club: 'Club Event',
+    ex_jazz: 'Jazz Live',
+    ex_idol: 'Idol Live',
+    btn_analyze: 'Find Artists',
+    btn_analyzing: 'Searching...',
+    btn_generate: 'Generate Playlist',
+    btn_back: 'Back',
+    btn_add: '+ Add',
+    btn_copy: 'Copy',
+    btn_save: 'Save to Spotify',
+    btn_cancel: 'Cancel',
+    btn_connect: 'Connect',
+    modal_title: 'Spotify API Setup',
+    modal_desc: 'You need a Spotify Developer App Client ID to generate playlists.',
+    add_artist_placeholder: 'Add artist name...',
+    toast_enter_desc: 'Please enter a description',
+    toast_no_candidates: 'No artist candidates found. Check the format.',
+    toast_no_db: 'Cannot connect to music database. Please review candidates manually.',
+    toast_mb_no_match: 'No matches found in database. Showing candidates.',
+    toast_api_error: 'API connection issue. Please review candidates manually.',
+    toast_added: 'Added',
+    toast_added_unverified: 'was not found in database but added anyway',
+    toast_need_artist: 'At least one artist is required',
+    toast_no_spotify_artist: 'No artists found on Spotify',
+    toast_no_tracks: 'No tracks found',
+    toast_saved: 'Playlist saved to Spotify!',
+    toast_save_failed: 'Failed to save: ',
+    toast_copied: 'Playlist copied to clipboard',
+    toast_connected: 'Connected to Spotify',
+    toast_auth_failed: 'Authentication failed',
+    toast_client_saved: 'Client ID saved. Connecting...',
+    toast_no_preview: 'No preview available for this track',
+    note_verified: '{count} artists verified ({source}). Remove any unwanted or add more manually.',
+    note_candidates: '{count} candidates detected. Not verified - remove unwanted ones manually.',
+    note_empty: 'No artists found. Add them manually.',
+    meta_format: '{tracks} tracks - about {mins} min - {artists} artists',
+    searching_spotify: 'Searching Spotify... ({n}/{total})',
+    searching_mb: 'Searching MusicBrainz... ({n}/{total}) {name}',
+    connecting_mb: 'Connecting to MusicBrainz...',
+  },
+  ja: {
+    connect_spotify: 'Spotify\u306b\u63a5\u7d9a',
+    connected: '\u63a5\u7d9a\u6e08\u307f',
+    hero_title: '\u30e9\u30a4\u30d6\u306e\u7a7a\u6c17\u3092<br><span class="accent">\u30d7\u30ec\u30a4\u30ea\u30b9\u30c8\u306b\u5909\u3048\u308b</span>',
+    hero_desc: '\u97f3\u697d\u30e9\u30a4\u30d6\u306e\u8aac\u660e\u6587\u3092\u5165\u529b\u3059\u308b\u3060\u3051\u3067\u3001\u51fa\u6f14\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u3092\u5206\u6790\u3057\u3001Spotify\u30d7\u30ec\u30a4\u30ea\u30b9\u30c8\u3092\u81ea\u52d5\u751f\u6210\u3057\u307e\u3059\u3002',
+    step1_title: '\u30a4\u30d9\u30f3\u30c8\u306e\u8aac\u660e\u6587\u3092\u5165\u529b',
+    step1_placeholder: '\u4f8b\uff1aFUJI ROCK FESTIVAL 2025\n\nGREEN STAGE: Radiohead / Kendrick Lamar / King Gnu\nWHITE STAGE: Aphex Twin / Cornelius / HYUKOH\nRED MARQUEE: Floating Points / cero / GEZAN',
+    step2_title: '\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u3092\u78ba\u8a8d\u30fb\u7de8\u96c6',
+    step3_title: '\u751f\u6210\u3055\u308c\u305f\u30d7\u30ec\u30a4\u30ea\u30b9\u30c8',
+    ex_rock: '\u30ed\u30c3\u30af\u30d5\u30a7\u30b9',
+    ex_club: '\u30af\u30e9\u30d6\u30a4\u30d9\u30f3\u30c8',
+    ex_jazz: '\u30b8\u30e3\u30ba\u30e9\u30a4\u30d6',
+    ex_idol: '\u30a2\u30a4\u30c9\u30eb\u30e9\u30a4\u30d6',
+    btn_analyze: '\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u3092\u691c\u7d22',
+    btn_analyzing: '\u691c\u7d22\u4e2d...',
+    btn_generate: '\u30d7\u30ec\u30a4\u30ea\u30b9\u30c8\u3092\u751f\u6210',
+    btn_back: '\u623b\u308b',
+    btn_add: '\uff0b \u8ffd\u52a0',
+    btn_copy: '\u30b3\u30d4\u30fc',
+    btn_save: 'Spotify\u306b\u4fdd\u5b58',
+    btn_cancel: '\u30ad\u30e3\u30f3\u30bb\u30eb',
+    btn_connect: '\u63a5\u7d9a\u3059\u308b',
+    modal_title: 'Spotify API\u306e\u8a2d\u5b9a',
+    modal_desc: '\u30d7\u30ec\u30a4\u30ea\u30b9\u30c8\u3092\u751f\u6210\u3059\u308b\u306b\u306fSpotify Developer App\u306eClient ID\u304c\u5fc5\u8981\u3067\u3059\u3002',
+    add_artist_placeholder: '\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u540d\u3092\u8ffd\u52a0...',
+    toast_enter_desc: '\u8aac\u660e\u6587\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044',
+    toast_no_candidates: '\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u540d\u306e\u5019\u88dc\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f',
+    toast_no_db: '\u97f3\u697d\u30c7\u30fc\u30bf\u30d9\u30fc\u30b9\u306b\u63a5\u7d9a\u3067\u304d\u307e\u305b\u3093\u3002\u5019\u88dc\u3092\u624b\u52d5\u3067\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044',
+    toast_mb_no_match: '\u30c7\u30fc\u30bf\u30d9\u30fc\u30b9\u3067\u4e00\u81f4\u3059\u308b\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f',
+    toast_api_error: 'API\u63a5\u7d9a\u306b\u554f\u984c\u304c\u3042\u308a\u307e\u3057\u305f\u3002\u5019\u88dc\u3092\u624b\u52d5\u3067\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044',
+    toast_added: '\u8ffd\u52a0\u3057\u307e\u3057\u305f',
+    toast_added_unverified: '\u306f\u30c7\u30fc\u30bf\u30d9\u30fc\u30b9\u3067\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f\u304c\u8ffd\u52a0\u3057\u307e\u3057\u305f',
+    toast_need_artist: '\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u304c1\u3064\u4ee5\u4e0a\u5fc5\u8981\u3067\u3059',
+    toast_no_spotify_artist: 'Spotify\u3067\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f',
+    toast_no_tracks: '\u66f2\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f',
+    toast_saved: 'Spotify\u306b\u30d7\u30ec\u30a4\u30ea\u30b9\u30c8\u3092\u4fdd\u5b58\u3057\u307e\u3057\u305f\uff01',
+    toast_save_failed: '\u4fdd\u5b58\u306b\u5931\u6557\u3057\u307e\u3057\u305f: ',
+    toast_copied: '\u30d7\u30ec\u30a4\u30ea\u30b9\u30c8\u3092\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f',
+    toast_connected: 'Spotify\u306b\u63a5\u7d9a\u3057\u307e\u3057\u305f',
+    toast_auth_failed: '\u8a8d\u8a3c\u306b\u5931\u6557\u3057\u307e\u3057\u305f',
+    toast_client_saved: 'Client ID\u3092\u4fdd\u5b58\u3057\u307e\u3057\u305f\u3002\u63a5\u7d9a\u3057\u307e\u3059...',
+    toast_no_preview: '\u3053\u306e\u66f2\u306e\u30d7\u30ec\u30d3\u30e5\u30fc\u306f\u5229\u7528\u3067\u304d\u307e\u305b\u3093',
+    note_verified: '{count}\u540d\u306e\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u3092{source}\u3067\u78ba\u8a8d\u6e08\u307f\u3002\u4e0d\u8981\u306a\u3082\u306e\u306f\u524a\u9664\u3001\u624b\u52d5\u8ffd\u52a0\u3082\u53ef\u80fd\u3067\u3059\u3002',
+    note_candidates: '{count}\u4ef6\u306e\u5019\u88dc\u3092\u691c\u51fa\u3002\u672a\u691c\u8a3c\u306e\u305f\u3081\u4e0d\u8981\u306a\u3082\u306e\u306f\u624b\u52d5\u3067\u524a\u9664\u3057\u3066\u304f\u3060\u3055\u3044\u3002',
+    note_empty: '\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u624b\u52d5\u3067\u8ffd\u52a0\u3057\u3066\u304f\u3060\u3055\u3044\u3002',
+    meta_format: '{tracks}\u66f2 \u30fb \u7d04{mins}\u5206 \u30fb {artists}\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8',
+    searching_spotify: 'Spotify\u3067\u691c\u7d22\u4e2d... ({n}/{total})',
+    searching_mb: 'MusicBrainz\u3067\u691c\u7d22\u4e2d... ({n}/{total}) {name}',
+    connecting_mb: 'MusicBrainz\u306b\u63a5\u7d9a\u4e2d...',
+  }
+};
+
+function t(key, params = {}) {
+  let text = TRANSLATIONS[currentLang]?.[key] || TRANSLATIONS.en[key] || key;
+  for (const [k, v] of Object.entries(params)) {
+    text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+  }
+  return text;
+}
+
+function toggleLang() {
+  currentLang = currentLang === 'en' ? 'ja' : 'en';
+  document.getElementById('langBtn').textContent = currentLang === 'en' ? 'JA' : 'EN';
+  applyTranslations();
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.innerHTML = t(key);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = t(key);
+  });
+  // Update spotify button
+  if (accessToken) {
+    document.getElementById('spotifyBtnText').textContent = t('connected');
+  }
+  // Re-render artists if they exist
+  if (extractedArtists.length > 0) renderArtists();
+}
+
+// ===== State =====
+let accessToken = null;
+let extractedArtists = [];
+let currentTracks = [];
+let previewAudio = null;
+let currentPreviewIdx = -1;
+
+const EXAMPLES = [
+  `FUJI ROCK FESTIVAL 2025
+
+GREEN STAGE: Radiohead / Kendrick Lamar / \u5b87\u591a\u7530\u30d2\u30ab\u30eb / King Gnu
+WHITE STAGE: Aphex Twin / \u96fb\u6c17\u30b0\u30eb\u30fc\u30f4 / HYUKOH / Cornelius
+RED MARQUEE: Floating Points / cero / GEZAN
+
+3\u65e5\u9593\u306b\u308f\u305f\u308b\u91ce\u5916\u30ed\u30c3\u30af\u30d5\u30a7\u30b9\u30c6\u30a3\u30d0\u30eb\u3002\u30ed\u30c3\u30af\u3001\u30a8\u30ec\u30af\u30c8\u30ed\u30cb\u30ab\u3001\u30d2\u30c3\u30d7\u30db\u30c3\u30d7\u3001J-POP\u307e\u3067\u5e45\u5e83\u3044\u30b8\u30e3\u30f3\u30eb\u306e\u51fa\u6f14\u8005\u304c\u96c6\u7d50\u3002`,
+
+  `WOMB PRESENTS: DEEP NIGHT TOKYO
+
+\u51fa\u6f14:
+- Jeff Mills
+- Ken Ishii
+- DJ Nobu
+- Fumiya Tanaka
+- Wata Igarashi
+
+\u6e0b\u8c37WOMB\u3067\u958b\u50ac\u3055\u308c\u308b\u30c6\u30af\u30ce\u30fb\u30cf\u30a6\u30b9\u7cfb\u306e\u30aa\u30fc\u30eb\u30ca\u30a4\u30c8\u30a4\u30d9\u30f3\u30c8\u3002\u91cd\u4f4e\u97f3\u304c\u97ff\u304f\u30d5\u30ed\u30a2\u3067\u6df1\u591c\u304b\u3089\u671d\u65b9\u307e\u3067\u3002`,
+
+  `Blue Note Tokyo Special Live
+
+\u51fa\u6f14: Robert Glasper Experiment
+\u30b2\u30b9\u30c8: \u631e\u9593\u7f8e\u5e06 / haruka nakamura
+
+\u30d4\u30a2\u30ce\u3068\u30a8\u30ec\u30af\u30c8\u30ed\u30cb\u30af\u30b9\u304c\u878d\u5408\u3059\u308b\u30b3\u30f3\u30c6\u30f3\u30dd\u30e9\u30ea\u30fc\u30b8\u30e3\u30ba\u306e\u5915\u3079\u3002\u30cd\u30aa\u30bd\u30a6\u30eb\u3001\u30d2\u30c3\u30d7\u30db\u30c3\u30d7\u306e\u8981\u7d20\u3082\u53d6\u308a\u5165\u308c\u305f\u81ea\u7531\u306a\u30b8\u30e3\u30e0\u30bb\u30c3\u30b7\u30e7\u30f3\u3002`,
+
+  `\u30a2\u30a4\u30c9\u30eb\u30d5\u30a7\u30b9 2025 SUMMER
+
+\u51fa\u6f14:
+\u4e43\u6728\u574246 / \u65e5\u5411\u574246 / \u3082\u3082\u3044\u308d\u30af\u30ed\u30fc\u30d0\u30fcZ / Perfume / BABYMETAL / BiSH / \u65b0\u3057\u3044\u5b66\u6821\u306e\u30ea\u30fc\u30c0\u30fc\u30ba
+
+\u5e55\u5f35\u30e1\u30c3\u30bb\u3067\u958b\u50ac\u3055\u308c\u308b\u5927\u578b\u30a2\u30a4\u30c9\u30eb\u30d5\u30a7\u30b9\u30c6\u30a3\u30d0\u30eb\u3002\u30a2\u30c3\u30d7\u30c6\u30f3\u30dd\u306a\u30c0\u30f3\u30b9\u30ca\u30f3\u30d0\u30fc\u304b\u3089\u611f\u52d5\u7684\u306a\u30d0\u30e9\u30fc\u30c9\u307e\u3067\u3002\u30da\u30f3\u30e9\u30a4\u30c8\u304c\u4f1a\u5834\u3092\u5f69\u308b\u30a8\u30cd\u30eb\u30ae\u30c3\u30b7\u30e5\u306a\u30b9\u30c6\u30fc\u30b8\u3002`
+];
+
+// ===== Spotify Auth (PKCE) =====
+const SCOPES = 'playlist-modify-public playlist-modify-private';
+
+function getRedirectUri() { return window.location.origin + window.location.pathname; }
+function getClientId() { return localStorage.getItem('spotlist_client_id') || ''; }
+
+async function generateCodeVerifier() {
+  const arr = new Uint8Array(64);
+  crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function generateCodeChallenge(v) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+  return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function handleSpotifyAuth() {
+  const clientId = getClientId();
+  if (!clientId) {
+    document.getElementById('currentUrl').textContent = getRedirectUri();
+    document.getElementById('setupModal').classList.add('open');
+    return;
+  }
+  const verifier = await generateCodeVerifier();
+  const challenge = await generateCodeChallenge(verifier);
+  sessionStorage.setItem('code_verifier', verifier);
+
+  const params = new URLSearchParams({
+    client_id: clientId, response_type: 'code',
+    redirect_uri: getRedirectUri(), scope: SCOPES,
+    code_challenge_method: 'S256', code_challenge: challenge,
+  });
+  window.location = `https://accounts.spotify.com/authorize?${params}`;
+}
+
+async function exchangeCode(code) {
+  const verifier = sessionStorage.getItem('code_verifier');
+  const clientId = getClientId();
+  const resp = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId, grant_type: 'authorization_code',
+      code, redirect_uri: getRedirectUri(), code_verifier: verifier,
+    }),
+  });
+  const data = await resp.json();
+  if (data.access_token) {
+    accessToken = data.access_token;
+    setConnected(true);
+    showToast(t('toast_connected'));
+  } else {
+    showToast(t('toast_auth_failed'));
+  }
+}
+
+function setConnected(c) {
+  const btn = document.getElementById('spotifyBtn');
+  const text = document.getElementById('spotifyBtnText');
+  btn.classList.toggle('connected', c);
+  text.textContent = c ? t('connected') : t('connect_spotify');
+}
+
+// ===== Step 1: Analyze Description =====
+function analyzeDescription() {
+  const desc = document.getElementById('liveDescription').value.trim();
+  if (!desc) { showToast(t('toast_enter_desc')); return; }
+
+  const artists = extractArtists(desc);
+  console.log('Extracted artists:', artists);
+
+  if (artists.length === 0) {
+    showToast(t('toast_no_candidates'));
+    return;
+  }
+
+  extractedArtists = artists.map(name => ({ name, spotifyId: null }));
+  renderArtists();
+  activateStep(2);
+}
+
+// ===== Pattern-based Artist Extraction (no API) =====
+function extractArtists(text) {
+  const results = new Set();
+
+  // --- Helpers ---
+  function clean(s) {
+    return s.trim()
+      .replace(/^[-\u2013\u2014\u2022\u25cf\u25cb\u25a0\u25a1*#\u2605\u2606\u203b\uff0a]+\s*/, '')  // bullet markers
+      .replace(/\(.*?\)/g, '').replace(/\uff08.*?\uff09/g, '')   // parens
+      .replace(/\u300c.*?\u300d/g, '').replace(/\[.*?\]/g, '')   // brackets
+      .replace(/\s*\u203b.*$/, '')                                 // trailing notes
+      .trim();
+  }
+
+  // Words that are definitely NOT artist names
+  const SKIP_WORDS = new Set([
+    'open','close','start','adv','door','doors','info','ticket','tickets',
+    'free','sold out','soldout','tba','tbd','more','other','and','with',
+    'feat','featuring','vs','presents','present','supported by','special guest',
+    'mc','vj','dj set','live','act','stage','floor','area','tent','room',
+    'hall','lounge','bar','marquee','arena','booth','outdoor','indoor',
+    'day','night',
+  ]);
+
+  // Label keywords that precede artist lists
+  const LABEL_RE = /^(?:[\u51fa\u6f14\u8005]?[\u51fa\u6f14]|[\u51fa\u6f14]\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8|lineup|artist|act|performer|cast|guest|\u30b2\u30b9\u30c8|\u51fa\u5e03|\u30e9\u30a4\u30f3\u30ca\u30c3\u30d7|\u30e9\u30a4\u30f3\u30a2\u30c3\u30d7|\u8ffd\u52a0\u30a2\u30af\u30c8|dj|live act|band|singer)s?\s*$/i;
+
+  // Stage/area labels (content after these is likely artists)
+  const STAGE_LABEL_RE = /^(?:.*(?:stage|floor|tent|area|room|hall|marquee|arena|lounge|bar|booth|day\s*\d*))\s*$/i;
+
+  function isSkip(s) {
+    if (!s || s.length < 2 || s.length > 60) return true;
+    if (/^\d+$/.test(s)) return true;
+    if (SKIP_WORDS.has(s.toLowerCase())) return true;
+    // Date patterns: 2025/1/1, 2025年1月, 1月20日
+    if (/^\d{4}[\u5e74\/\-.]/.test(s)) return true;
+    if (/^\d{1,2}\u6708\d{1,2}\u65e5/.test(s)) return true;
+    // Time: 18:00, 18\uff1a00
+    if (/^\d{1,2}[:\uff1a]\d{2}\s*(~|-)?\s*(\d{1,2}[:\uff1a]\d{2})?$/.test(s)) return true;
+    // Price: 3000\u5186, \u00a53000, \u524d\u58f2\u308a3000\u5186
+    if (/\d+\u5186/.test(s) || /^\u00a5\d/.test(s)) return true;
+    if (/^(\u524d\u58f2|\u5f53\u65e5|\u4e00\u822c|\u5b66\u751f|\u5165\u5834\u6599)/.test(s)) return true;
+    // URL
+    if (/^https?:\/\//.test(s)) return true;
+    // Pure connectors
+    if (/^(and|with|feat\.?|vs\.?|presents?|\u00d7|&)$/i.test(s)) return true;
+    // Venue/place descriptors
+    if (/^(\u4f1a\u5834|\u5834\u6240|\u4f4f\u6240|\u958b\u50ac|\u4e3b\u50ac|\u5354\u8cdb|\u5f8c\u63f4|\u4f01\u753b|\u5236\u4f5c|\u554f\u5408\u305b|\u554f\u3044\u5408\u308f\u305b|@|at\s)[::\uff1a]?\s*/i.test(s)) return true;
+    // Event description phrases
+    if (/(\u3067\u958b\u50ac|\u306b\u3066\u958b\u50ac|\u3092\u958b\u50ac|\u306b\u3066\u304a\u5c4a\u3051|\u304c\u96c6\u7d50|\u304c\u51fa\u6f14|\u304c\u97ff\u304f|\u3092\u5f69\u308b|\u304c\u878d\u5408|\u304c\u5c55\u958b|\u3068\u304a\u5c4a\u3051)/.test(s)) return true;
+    // Long Japanese sentences (many hiragana = likely description, not name)
+    const hiraCount = (s.match(/[\u3041-\u3096]/g) || []).length;
+    if (hiraCount > 5 && s.length > 12) return true;
+    // Sentence-ending punctuation
+    if (/[\u3002\uff01\uff1f!?]$/.test(s) && s.length > 12) return true;
+    return false;
+  }
+
+  // --- Pre-processing: join label-only lines with next line ---
+  const rawLines = text.split(/\n/);
+  const lines = [];
+  for (let i = 0; i < rawLines.length; i++) {
+    const t = rawLines[i].trim();
+    // If line is just a label (e.g., "\u51fa\u6f14:"), join with next non-empty line
+    const labelOnly = t.match(/^(.+?)[:\uff1a]\s*$/);
+    if (labelOnly && (LABEL_RE.test(labelOnly[1]) || STAGE_LABEL_RE.test(labelOnly[1]))) {
+      // Find next non-empty line
+      let j = i + 1;
+      while (j < rawLines.length && !rawLines[j].trim()) j++;
+      if (j < rawLines.length) {
+        lines.push(t + ' ' + rawLines[j].trim());
+        i = j; // skip the joined line
+        continue;
+      }
+    }
+    lines.push(t);
+  }
+
+  // --- Main extraction ---
+  let inArtistBlock = false;  // true when we're inside a bullet/dash list after a label
+
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    if (!line) { inArtistBlock = false; continue; }
+
+    // Skip very long lines with no separators (likely description paragraphs)
+    if (line.length > 100 && !/[\/\uff0f]/.test(line) && !/[,\u3001]/.test(line)) {
+      inArtistBlock = false;
+      continue;
+    }
+
+    // --- Pattern 1: "Label: artist1 / artist2 / artist3" ---
+    const colonMatch = line.match(/^(.+?)[:\uff1a]\s*(.+)$/);
+    if (colonMatch) {
+      const label = colonMatch[1].trim();
+      const content = colonMatch[2].trim();
+
+      const isArtistLabel = LABEL_RE.test(label) || STAGE_LABEL_RE.test(label);
+      // Also match patterns like "GREEN STAGE", "STAGE A", "Day 1" etc
+      const isStageish = /stage|floor|tent|day|night|\u30b9\u30c6\u30fc\u30b8/i.test(label);
+
+      if (isArtistLabel || isStageish) {
+        // Determine best separator: use / ／ ・ 、 if present, otherwise fall back to comma
+        const hasPrimarySep = /[\/\uff0f\u30fb\u3001]/.test(content);
+        const sep = hasPrimarySep ? /\s*[\/\uff0f\u30fb\u3001]\s*/ : /\s*,\s*/;
+        const names = content.split(sep);
+        for (const n of names) {
+          const c = clean(n);
+          if (!isSkip(c)) results.add(c);
+        }
+        inArtistBlock = true;
+        continue;
+      }
+    }
+
+    // --- Pattern 2: Bullet/dash list item (likely artist if after a label) ---
+    const bulletMatch = line.match(/^[\u30fb\u2022\u25cf\u25cb\u25a0\u25a1\u2605\u2606*-]\s*(.+)/);
+    if (bulletMatch) {
+      const c = clean(bulletMatch[1]);
+      if (!isSkip(c)) {
+        results.add(c);
+        inArtistBlock = true;
+        continue;
+      }
+    }
+
+    // --- Pattern 3: Separator-delimited list on a single line ---
+    // Only use / ／ as reliable separators for unlabeled lines.
+    // ・ is ambiguous (could be genre list like "テクノ・ハウス") so only use it
+    // when the line is short and doesn't look like a sentence.
+    const hasSlash = /[\/\uff0f]/.test(line);
+    const hasNakaguro = /\u30fb/.test(line) && line.length < 60;
+    if (hasSlash || hasNakaguro) {
+      let content = line;
+      const cm = line.match(/^[^:\uff1a]+[:\uff1a]\s*(.+)$/);
+      if (cm) content = cm[1];
+
+      const sep = hasSlash ? /\s*[\/\uff0f]\s*/ : /\s*\u30fb\s*/;
+      const parts = content.split(sep);
+      if (parts.length >= 2) {
+        // Sanity check: if most parts are very short (< 4 chars) and all hiragana/katakana,
+        // it's likely a genre/descriptor list, not artists
+        const looksLikeGenres = parts.every(p => p.length <= 5 && /^[\u3041-\u30f6\u30fc]+$/.test(p.trim()));
+        if (!looksLikeGenres) {
+          for (const p of parts) {
+            const c = clean(p);
+            if (!isSkip(c)) results.add(c);
+          }
+          continue;
+        }
+      }
+    }
+
+    // --- Pattern 4: Continuation of artist block (indented or short standalone lines) ---
+    if (inArtistBlock && line.length < 50) {
+      // Could be comma/\u3001 separated
+      const parts = line.split(/\s*[,\u3001\u30fb]\s*/);
+      for (const p of parts) {
+        const c = clean(p);
+        if (!isSkip(c)) results.add(c);
+      }
+      continue;
+    }
+
+    // --- Pattern 5: Standalone short lines that look like names ---
+    // Only if the line is short, has no sentence markers, and isn't a known skip
+    if (line.length <= 40 && !colonMatch) {
+      const c = clean(line);
+      if (!isSkip(c)) {
+        // Extra checks for standalone lines to reduce noise:
+        // Must contain at least one letter/kanji/katakana (not just numbers/punctuation)
+        if (/[a-zA-Z\u3041-\u3096\u30a1-\u30f6\u4e00-\u9faf]/.test(c)) {
+          // Skip if it looks like a venue or event title (contains certain keywords)
+          if (!/(\u958b\u50ac|\u4f1a\u5834|\u4f4f\u6240|\u5165\u5834|\u7121\u6599|\u4e88\u7d04|\u8a73\u7d30|\u516c\u6f14|\u5168\u5e2d|\u6307\u5b9a|\u81ea\u7531)/.test(c)) {
+            // Don't add standalone lines if they're very first lines (likely event title)
+            if (li > 0) {
+              results.add(c);
+            }
+          }
+        }
+      }
+    } else {
+      inArtistBlock = false;
+    }
+  }
+
+  return [...results];
+}
+
+// ===== Render Artists =====
+function renderArtists() {
+  const el = document.getElementById('artistList');
+  el.innerHTML = extractedArtists.map((a, i) => `
+    <div class="artist-tag matched" id="tag-${i}">
+      <span>${escHtml(a.name)}</span>
+      <button class="remove-btn" onclick="removeArtist(${i})">\u2715</button>
+    </div>`
+  ).join('');
+
+  const note = document.getElementById('analysisNote');
+  const total = extractedArtists.length;
+  if (total > 0) {
+    note.innerHTML = t('note_candidates', { count: total });
+  } else {
+    note.innerHTML = t('note_empty');
+  }
+}
+
+function removeArtist(idx) {
+  extractedArtists.splice(idx, 1);
+  renderArtists();
+}
+
+function addArtistManual() {
+  const input = document.getElementById('addArtistInput');
+  const name = input.value.trim();
+  if (!name) return;
+  input.value = '';
+  extractedArtists.push({ name, spotifyId: null });
+  showToast(`${name} - ${t('toast_added')}`);
+  renderArtists();
+}
+
+function backToStep1() { activateStep(1); }
+
+// ===== Step 2 -> 3: Generate Playlist =====
+async function generatePlaylist() {
+  if (extractedArtists.length === 0) {
+    showToast(t('toast_need_artist'));
+    return;
+  }
+
+  if (!accessToken) {
+    handleSpotifyAuth();
+    return;
+  }
+
+  const btn = document.getElementById('generateBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  activateStep(3);
+  showSkeleton(true);
+
+  try {
+    const seedArtistIds = [];
+
+    for (const artist of extractedArtists) {
+      if (artist.spotifyId) {
+        seedArtistIds.push(artist.spotifyId);
+        continue;
+      }
+      try {
+        const resp = await fetch(`https://api.spotify.com/v1/search?${new URLSearchParams({
+          q: artist.name, type: 'artist', limit: 1, market: 'JP'
+        })}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+        const data = await resp.json();
+        if (data.artists?.items?.length > 0) {
+          artist.spotifyId = data.artists.items[0].id;
+          seedArtistIds.push(artist.spotifyId);
+        }
+      } catch (e) {
+        console.warn(`Search failed for ${artist.name}`, e);
+      }
+    }
+
+    if (seedArtistIds.length === 0) {
+      showToast(t('toast_no_spotify_artist'));
+      showSkeleton(false);
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      return;
+    }
+
+    const allTracks = [];
+    const tracksPerArtist = Math.max(2, Math.ceil(20 / seedArtistIds.length));
+
+    for (const artistId of seedArtistIds) {
+      try {
+        const resp = await fetch(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=JP`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const data = await resp.json();
+        if (data.tracks) allTracks.push(...data.tracks.slice(0, tracksPerArtist));
+      } catch (e) {
+        console.warn(`Top tracks failed for ${artistId}`, e);
+      }
+    }
+
+    // Recommendations
+    if (seedArtistIds.length > 0) {
+      try {
+        const recResp = await fetch(`https://api.spotify.com/v1/recommendations?${new URLSearchParams({
+          seed_artists: seedArtistIds.slice(0, 5).join(','),
+          limit: 10, market: 'JP',
+        })}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+        const recData = await recResp.json();
+        if (recData.tracks) allTracks.push(...recData.tracks);
+      } catch (e) {
+        console.warn('Recommendations failed', e);
+      }
+    }
+
+    // Deduplicate & shuffle
+    const seenIds = new Set();
+    currentTracks = allTracks.filter(tr => {
+      if (seenIds.has(tr.id)) return false;
+      seenIds.add(tr.id);
+      return true;
+    });
+
+    for (let i = currentTracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [currentTracks[i], currentTracks[j]] = [currentTracks[j], currentTracks[i]];
+    }
+    currentTracks = currentTracks.slice(0, 30);
+
+    if (currentTracks.length === 0) {
+      showToast(t('toast_no_tracks'));
+    } else {
+      renderPlaylist();
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Error: ' + err.message);
+  }
+
+  showSkeleton(false);
+  btn.classList.remove('loading');
+  btn.disabled = false;
+}
+
+function renderPlaylist() {
+  const list = document.getElementById('trackList');
+  const meta = document.getElementById('playlistMeta');
+  const totalMs = currentTracks.reduce((s,tr) => s + tr.duration_ms, 0);
+  const totalMin = Math.floor(totalMs / 60000);
+  meta.textContent = t('meta_format', { tracks: currentTracks.length, mins: totalMin, artists: extractedArtists.length });
+
+  list.innerHTML = currentTracks.map((track, i) => {
+    const dur = `${Math.floor(track.duration_ms/60000)}:${String(Math.floor((track.duration_ms%60000)/1000)).padStart(2,'0')}`;
+    const art = track.album.images[2]?.url || track.album.images[0]?.url || '';
+    const artists = track.artists.map(a => a.name).join(', ');
+    return `
+      <div class="track-item" onclick="playPreview(${i})">
+        <div class="track-num">
+          ${i+1}
+          <span class="track-play">\u25b6</span>
+        </div>
+        <div class="track-art"><img src="${art}" alt="" loading="lazy"></div>
+        <div class="track-info">
+          <div class="track-name">${escHtml(track.name)}</div>
+          <div class="track-artist">${escHtml(artists)}</div>
+        </div>
+        <div class="track-duration">${dur}</div>
+        <a class="track-link" href="${track.external_urls.spotify}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        </a>
+      </div>`;
+  }).join('');
+}
+
+// ===== Step management =====
+function activateStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const card = document.getElementById(`step${i}`);
+    const badge = document.getElementById(`badge${i}`);
+    card.classList.remove('active', 'disabled');
+    if (i < n) {
+      badge.classList.add('done');
+      badge.textContent = '\u2713';
+    } else if (i === n) {
+      card.classList.add('active');
+      badge.classList.remove('done');
+      badge.textContent = i;
+    } else {
+      card.classList.add('disabled');
+      badge.classList.remove('done');
+      badge.textContent = i;
+    }
+  }
+  document.getElementById(`step${n}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ===== Preview =====
+function playPreview(idx) {
+  const track = currentTracks[idx];
+  if (!track.preview_url) { showToast(t('toast_no_preview')); return; }
+  const player = document.getElementById('previewPlayer');
+  if (previewAudio) previewAudio.pause();
+
+  if (currentPreviewIdx === idx) {
+    player.classList.remove('active');
+    currentPreviewIdx = -1;
+    return;
+  }
+
+  previewAudio = new Audio(track.preview_url);
+  previewAudio.volume = 0.5;
+  previewAudio.play();
+  currentPreviewIdx = idx;
+
+  document.getElementById('previewArt').src = track.album.images[1]?.url || track.album.images[0]?.url || '';
+  document.getElementById('previewName').textContent = track.name;
+  document.getElementById('previewArtist').textContent = track.artists.map(a=>a.name).join(', ');
+  document.getElementById('previewPlayBtn').innerHTML = '\u23f8';
+  player.classList.add('active');
+
+  previewAudio.addEventListener('timeupdate', () => {
+    document.getElementById('progressFill').style.width = (previewAudio.currentTime/previewAudio.duration*100)+'%';
+  });
+  previewAudio.addEventListener('ended', () => {
+    document.getElementById('previewPlayBtn').innerHTML = '\u25b6';
+    document.getElementById('progressFill').style.width = '0%';
+  });
+}
+
+function togglePreview() {
+  if (!previewAudio) return;
+  const btn = document.getElementById('previewPlayBtn');
+  if (previewAudio.paused) { previewAudio.play(); btn.innerHTML = '\u23f8'; }
+  else { previewAudio.pause(); btn.innerHTML = '\u25b6'; }
+}
+
+// ===== Save to Spotify =====
+async function saveToSpotify() {
+  if (!accessToken || currentTracks.length === 0) return;
+  const btn = document.getElementById('saveBtn');
+  btn.classList.add('loading');
+
+  try {
+    const userResp = await fetch('https://api.spotify.com/v1/me', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    const user = await userResp.json();
+
+    const desc = document.getElementById('liveDescription').value.trim().slice(0, 200);
+    const plResp = await fetch(`https://api.spotify.com/v1/users/${user.id}/playlists`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `Spotlist: ${new Date().toLocaleDateString('en-US')}`,
+        description: `Generated by Spotlist - ${desc}`,
+        public: false,
+      })
+    });
+    const playlist = await plResp.json();
+
+    await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uris: currentTracks.map(tr => tr.uri) })
+    });
+
+    showToast(t('toast_saved'));
+    if (playlist.external_urls?.spotify) {
+      window.open(playlist.external_urls.spotify, '_blank');
+    }
+  } catch (err) {
+    showToast(t('toast_save_failed') + err.message);
+  }
+
+  btn.classList.remove('loading');
+}
+
+// ===== Helpers =====
+function fillExample(idx) { document.getElementById('liveDescription').value = EXAMPLES[idx]; }
+
+function closeSetupModal() { document.getElementById('setupModal').classList.remove('open'); }
+
+function saveClientId() {
+  const id = document.getElementById('modalClientId').value.trim();
+  if (!id) return;
+  localStorage.setItem('spotlist_client_id', id);
+  closeSetupModal();
+  showToast(t('toast_client_saved'));
+  setTimeout(() => handleSpotifyAuth(), 500);
+}
+
+function showSkeleton(show) {
+  const el = document.getElementById('skeletonList');
+  if (show) {
+    el.innerHTML = Array.from({length:8},()=>`
+      <div class="skeleton-item">
+        <div class="skeleton-box skel-num"></div>
+        <div class="skeleton-box skel-art"></div>
+        <div><div class="skeleton-box skel-lg"></div><div class="skeleton-box skel-sm"></div></div>
+        <div class="skeleton-box skel-dur"></div>
+      </div>`).join('');
+    el.classList.add('visible');
+  } else {
+    el.classList.remove('visible');
+  }
+}
+
+function copyPlaylist() {
+  if (currentTracks.length === 0) return;
+  const text = currentTracks.map((tr,i) => `${i+1}. ${tr.name} - ${tr.artists.map(a=>a.name).join(', ')}`).join('\n');
+  navigator.clipboard.writeText(text);
+  showToast(t('toast_copied'));
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ===== Init =====
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('currentUrl').textContent = getRedirectUri();
+
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    window.history.replaceState({}, '', window.location.pathname);
+    exchangeCode(code);
+  }
+});
+</script>
+</body>
+</html>

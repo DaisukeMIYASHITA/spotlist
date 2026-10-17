@@ -566,6 +566,8 @@
     .progress-bar { display: none; }
   }
 </style>
+  <script src="./analytics-config.js" defer></script>
+  <script src="./analytics.js" defer></script>
 </head>
 <body>
 
@@ -923,6 +925,7 @@ async function exchangeCode(code) {
   if (data.access_token) {
     accessToken = data.access_token;
     setConnected(true);
+    window.appAnalytics?.track('spotify_connected');
     showToast(t('toast_connected'));
   } else {
     showToast(t('toast_auth_failed'));
@@ -952,6 +955,7 @@ function analyzeDescription() {
   extractedArtists = artists.map(name => ({ name, spotifyId: null }));
   renderArtists();
   activateStep(2);
+  window.appAnalytics?.track('artists_extracted');
 }
 
 // ===== Pattern-based Artist Extraction (no API) =====
@@ -1274,6 +1278,7 @@ async function generatePlaylist() {
       showToast(t('toast_no_tracks'));
     } else {
       renderPlaylist();
+      window.appAnalytics?.track('playlist_generated');
     }
   } catch (err) {
     console.error(err);
@@ -1387,6 +1392,7 @@ async function saveToSpotify() {
     const userResp = await fetch('https://api.spotify.com/v1/me', {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
+    if (!userResp.ok) throw new Error('Spotify user request failed');
     const user = await userResp.json();
 
     const desc = document.getElementById('liveDescription').value.trim().slice(0, 200);
@@ -1399,14 +1405,17 @@ async function saveToSpotify() {
         public: false,
       })
     });
+    if (!plResp.ok) throw new Error('Spotify playlist creation failed');
     const playlist = await plResp.json();
 
-    await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
+    const tracksResp = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ uris: currentTracks.map(tr => tr.uri) })
     });
 
+    if (!tracksResp.ok) throw new Error('Spotify track save failed');
+    window.appAnalytics?.track('playlist_saved');
     showToast(t('toast_saved'));
     if (playlist.external_urls?.spotify) {
       window.open(playlist.external_urls.spotify, '_blank');

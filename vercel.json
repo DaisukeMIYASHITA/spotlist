@@ -5,9 +5,17 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "analytics*.js",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/(analytics(?:-config)?\\.js)",
+      "dest": "/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "/index.html"
